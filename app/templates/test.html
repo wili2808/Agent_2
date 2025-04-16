@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Interfaz de prueba para Agente IA empresarial"
+    />
+    <meta name="theme-color" content="#1976d2" />
+    <title>Prueba de Agente IA</title>
+    <!-- Agregar favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <!-- Mejorar accesibilidad -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+    />
+    <style>
+      /* Variables CSS para temas y personalización */
+      :root {
+        /* Colores principales */
+        --primary-color: #1976d2;
+        --primary-dark: #1565c0;
+        --success-color: #4caf50;
+        --error-color: #f44336;
+        --warning-color: #ffc107;
+
+        /* Colores de fondo */
+        --bg-user: #e6f7ff;
+        --bg-agent: #f9f9f9;
+        --bg-success: #e8f5e9;
+        --bg-error: #ffebee;
+        --bg-confirm: #fff8e1;
+
+        /* Tipografía */
+        --font-primary: "Roboto", Arial, sans-serif;
+        --font-mono: "Consolas", monospace;
+        --font-size-base: 16px;
+        --font-size-small: 0.9em;
+
+        /* Espaciado */
+        --spacing-unit: 8px;
+        --container-padding: 20px;
+        --border-radius: 5px;
+
+        /* Animaciones */
+        --transition-speed: 0.3s;
+      }
+
+      /* Estilos base */
+      body {
+        font-family: var(--font-primary);
+        font-size: var(--font-size-base);
+        line-height: 1.5;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: var(--container-padding);
+      }
+
+      /* Contenedor del chat con scroll suave */
+      .chat-container {
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: var(--container-padding);
+        margin-bottom: calc(var(--spacing-unit) * 2);
+        min-height: 300px;
+        max-height: 500px;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+        background: linear-gradient(to bottom, #ffffff, #fafafa);
+      }
+
+      /* Animaciones para mensajes */
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message {
+        animation: slideIn var(--transition-speed) ease-out;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+      .message {
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 5px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      .user-message {
+        background-color: #e6f7ff;
+        margin-left: 20%;
+        border-left: 4px solid #1976d2;
+      }
+      .agent-message {
+        background-color: #f9f9f9;
+        margin-right: 20%;
+        border-left: 4px solid #4caf50;
+      }
+      .error-message {
+        background-color: #ffebee;
+        border-left: 4px solid #f44336;
+      }
+      .confirmation-message {
+        background-color: var(--bg-confirm);
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin: 10px 0 15px 0;
+        border-left: 4px solid var(--warning-color);
+        position: relative;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+      .confirmation-message h3 {
+        margin-top: 0;
+        color: #856404;
+        font-size: 1.1em;
+        margin-bottom: 12px;
+        font-weight: 600;
+      }
+      .confirmation-message p {
+        margin-top: 15px;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #856404;
+        font-size: 1.05em;
+      }
+      .confirmation-details {
+        margin: 15px 0;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.7);
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+      }
+      .confirmation-details .data-field {
+        display: flex;
+        margin: 8px 0;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      }
+      .confirmation-details .data-field:last-child {
+        border-bottom: none;
+      }
+      .confirmation-details .field-label {
+        font-weight: 600;
+        min-width: 120px;
+        color: #555;
+      }
+      .confirmation-details .field-value {
+        color: #333;
+        flex: 1;
+      }
+      .confirmation-details .json-data {
+        background-color: #fff8e5;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+        white-space: pre-wrap;
+        word-break: break-word;
+        border: 1px solid #ffe0b2;
+        margin-top: 5px;
+      }
+      .success-message {
+        background-color: #e8f5e9;
+        border-left: 4px solid #4caf50;
+      }
+      .success-message pre {
+        background-color: #e0f2f7; /* Slightly different background for code blocks */
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #b3e0ff;
+        white-space: pre-wrap; /* Ensures wrapping */
+        word-wrap: break-word;
+        font-family: monospace;
+        margin-top: 5px;
+      }
+      /* Styles for formatted data */
+      .data-list {
+        list-style-type: none;
+        padding-left: 0;
+        margin-top: 5px;
+      }
+      .data-list li {
+        background-color: #f0f0f0;
+        margin-bottom: 5px;
+        padding: 8px;
+        border-radius: 3px;
+        font-size: 0.9em;
+      }
+      .data-object {
+        margin-top: 5px;
+        font-size: 0.9em;
+      }
+      .data-object p {
+        margin: 3px 0;
+      }
+      .data-object strong {
+        display: inline-block;
+        min-width: 80px; /* Align keys */
+      }
+      .message-form {
+        display: flex;
+      }
+      .message-input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px 0 0 5px;
+      }
+      .send-button {
+        padding: 10px 20px;
+        background-color: #1976d2;
+        color: white;
+        border: none;
+        border-radius: 0 5px 5px 0;
+        cursor: pointer;
+      }
+      .send-button:hover {
+        background-color: #1565c0;
+      }
+      .quick-buttons {
+        display: flex;
+        margin-top: 10px;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .quick-button {
+        padding: 8px 15px;
+        background-color: #e0e0e0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        cursor: pointer;
+        flex-grow: 1;
+        text-align: center;
+      }
+      .quick-button:hover {
+        background-color: #d5d5d5;
+      }
+      .buttons-container {
+        display: none;
+        margin-top: 10px;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 15px;
+        animation: highlight-buttons 0.4s ease-out forwards;
+      }
+      .confirm-button,
+      .cancel-button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        min-width: 120px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .confirm-button {
+        background-color: var(--success-color);
+        color: white;
+      }
+      .confirm-button:hover {
+        background-color: #3d8b40;
+      }
+      .cancel-button {
+        background-color: var(--error-color);
+        color: white;
+      }
+      .cancel-button:hover {
+        background-color: #d32f2f;
+      }
+      .session-id {
+        font-size: 10px;
+        color: #999;
+        text-align: center;
+        margin-top: 5px;
+      }
+      /* Styles for confirmation details */
+      .confirmation-details {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.5);
+        border-radius: 4px;
+      }
+      .confirmation-details pre {
+        margin-top: 4px;
+        background-color: #fdfbf5; /* Even lighter for pre */
+        padding: 5px;
+        border-radius: 2px;
+        border: 1px solid #eee9d4;
+      }
+      /* Estilos para la presentación de datos */
+      .data-presentation {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .data-presentation h3 {
+        margin: 0 0 10px 0;
+        color: var(--primary-color);
+        font-size: 1.1em;
+      }
+      .data-field {
+        display: flex;
+        margin: 5px 0;
+        padding: 5px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .data-field:last-child {
+        border-bottom: none;
+      }
+      .field-label {
+        font-weight: 500;
+        min-width: 120px;
+        color: #666;
+      }
+      .field-value {
+        color: #333;
+        flex: 1;
+      }
+      .json-data {
+        background-color: #f5f5f5;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      /* Mejorar los estilos para el indicador de escritura */
+      .typing-indicator {
+        font-style: italic;
+        color: #777;
+        padding: 8px 15px;
+        border-left: 4px solid #ddd;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.6;
+        }
+      }
+
+      /* Animación para destacar los botones de confirmación */
+      @keyframes highlight-buttons {
+        0% {
+          transform: translateY(5px);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Prueba de Agente IA</h1>
+
+    <div
+      class="chat-container"
+      id="chat-container"
+      role="log"
+      aria-live="polite"
+      aria-label="Conversación con el agente"
+    ></div>
+
+    <div id="confirmation-buttons" class="buttons-container">
+      <button id="confirm-button" class="confirm-button">Sí, proceder</button>
+      <button id="cancel-button" class="cancel-button">No, cancelar</button>
+    </div>
+
+    <div class="quick-buttons" id="quick-buttons">
+      <button class="quick-button" data-message="Listar clientes">
+        Listar clientes
+      </button>
+      <button class="quick-button" data-message="Crear cliente">
+        Crear cliente
+      </button>
+      <button class="quick-button" data-message="Listar productos">
+        Listar productos
+      </button>
+    </div>
+
+    <div class="message-form" role="form" aria-label="Enviar mensaje">
+      <input
+        type="text"
+        id="message-input"
+        class="message-input"
+        placeholder="Escribe tu mensaje..."
+        aria-label="Mensaje para el agente"
+        autocomplete="off"
+      />
+      <button id="send-button" class="send-button" aria-label="Enviar mensaje">
+        Enviar
+      </button>
+    </div>
+
+    <div class="session-id" id="session-id-display"></div>
+
+    <script>
+      // Configuración global
+      const CONFIG = {
+        API: {
+          MESSAGE_ENDPOINT: "/test/message",
+          HEADERS: {
+            "Content-Type": "application/json",
+          },
+        },
+        SESSION: {
+          KEY: "chatSessionId",
+          PREFIX: "session_",
+        },
+        MESSAGE_TYPES: {
+          USER: "user",
+          AGENT: "agent",
+          ERROR: "error",
+          SUCCESS: "success",
+          CONFIRMATION: "confirmation",
+        },
+      };
+
+      // Clase principal del chat
+      class ChatInterface {
+        constructor() {
+          this.sessionId = this.initSession();
+          this.elements = this.initElements();
+          this.state = {
+            waitingForConfirmation: false,
+            isTyping: false,
+          };
+          this.initEventListeners();
+          this.showWelcomeMessage();
+        }
+
+        initSession() {
+          return (
+            localStorage.getItem(CONFIG.SESSION.KEY) || this.createNewSession()
+          );
+        }
+
+        createNewSession() {
+          const sessionId =
+            CONFIG.SESSION.PREFIX + Math.random().toString(36).substring(2, 15);
+          localStorage.setItem(CONFIG.SESSION.KEY, sessionId);
+          return sessionId;
+        }
+
+        initElements() {
+          return {
+            chatContainer: document.getElementById("chat-container"),
+            messageInput: document.getElementById("message-input"),
+            sendButton: document.getElementById("send-button"),
+            confirmationButtons: document.getElementById(
+              "confirmation-buttons"
+            ),
+            confirmButton: document.getElementById("confirm-button"),
+            cancelButton: document.getElementById("cancel-button"),
+            quickButtons: document.querySelectorAll(".quick-button"),
+            sessionIdDisplay: document.getElementById("session-id-display"),
+          };
+        }
+
+        initEventListeners() {
+          // Evento para el botón de enviar
+          this.elements.sendButton.addEventListener("click", () => {
+            const message = this.elements.messageInput.value.trim();
+            if (message) {
+              this.sendMessage(message);
+              this.elements.messageInput.value = "";
+            }
+          });
+
+          // Eventos para los botones rápidos
+          this.elements.quickButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+              const message = button.getAttribute("data-message");
+              if (message) {
+                this.sendMessage(message);
+              }
+            });
+          });
+
+          // Eventos para los botones de confirmación
+          this.elements.confirmButton.addEventListener("click", () => {
+            this.handleConfirmation(true);
+          });
+
+          this.elements.cancelButton.addEventListener("click", () => {
+            this.handleConfirmation(false);
+          });
+
+          // Evento para enviar con Enter
+          this.elements.messageInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              const message = this.elements.messageInput.value.trim();
+              if (message) {
+                this.sendMessage(message);
+                this.elements.messageInput.value = "";
+              }
+            }
+          });
+        }
+
+        async sendMessage(message) {
+          try {
+            // Mostrar el mensaje del usuario
+            this.addMessage(message, CONFIG.MESSAGE_TYPES.USER);
+
+            // Mostrar indicador de escritura
+            this.showTypingIndicator();
+
+            // Llamar a la API
+            const response = await fetch(CONFIG.API.MESSAGE_ENDPOINT, {
+              method: "POST",
+              headers: CONFIG.API.HEADERS,
+              body: JSON.stringify({
+                message: message,
+                session_id: this.sessionId,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Error en la respuesta del servidor");
+            }
+
+            const data = await response.json();
+            this.handleResponse(data);
+          } catch (error) {
+            this.handleError(error);
+          } finally {
+            this.hideTypingIndicator();
+          }
+        }
+
+        handleResponse(response) {
+          if (response.status === "success") {
+            if (response.data && response.data.requires_confirmation) {
+              // Para mensajes que requieren confirmación
+              this.showConfirmationMessage(response.message, response.data);
+
+              // Mostrar los botones de confirmación después de un pequeño retraso
+              setTimeout(() => {
+                this.elements.confirmationButtons.style.display = "flex";
+                this.scrollToBottom();
+
+                // Asegurar visibilidad añadiendo margen temporal al contenedor de chat
+                const chatContainer = this.elements.chatContainer;
+                const originalPadding =
+                  getComputedStyle(chatContainer).paddingBottom;
+                chatContainer.style.paddingBottom = "60px";
+
+                // Revertir después de un breve tiempo
+                setTimeout(() => {
+                  chatContainer.style.paddingBottom = originalPadding;
+                }, 300);
+              }, 200);
+            } else {
+              this.addFormattedMessage(
+                response.message,
+                response.data,
+                CONFIG.MESSAGE_TYPES.SUCCESS
+              );
+            }
+          } else if (response.status === "error") {
+            this.addMessage(response.message, CONFIG.MESSAGE_TYPES.ERROR);
+          } else {
+            this.addMessage(response.message, CONFIG.MESSAGE_TYPES.AGENT);
+          }
+        }
+
+        handleConfirmation(confirmed) {
+          if (confirmed) {
+            this.sendMessage("sí");
+          } else {
+            this.sendMessage("no");
+          }
+          this.hideConfirmationButtons();
+        }
+
+        addMessage(text, type, useHTML = false) {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = `message ${type}-message`;
+
+          if (useHTML) {
+            messageDiv.innerHTML = text;
+          } else {
+            messageDiv.textContent = text;
+          }
+
+          this.elements.chatContainer.appendChild(messageDiv);
+          this.scrollToBottom();
+        }
+
+        showTypingIndicator() {
+          const typingDiv = document.createElement("div");
+          typingDiv.className = "message agent-message typing-indicator";
+          typingDiv.textContent = "El agente está escribiendo...";
+          this.elements.chatContainer.appendChild(typingDiv);
+          this.scrollToBottom();
+        }
+
+        hideTypingIndicator() {
+          const typingIndicator =
+            this.elements.chatContainer.querySelector(".typing-indicator");
+          if (typingIndicator) {
+            typingIndicator.remove();
+          }
+        }
+
+        showConfirmationButtons() {
+          this.elements.confirmationButtons.style.display = "flex";
+          setTimeout(() => {
+            this.scrollToBottom();
+          }, 100);
+        }
+
+        hideConfirmationButtons() {
+          this.elements.confirmationButtons.style.display = "none";
+          this.state.waitingForConfirmation = false;
+        }
+
+        scrollToBottom() {
+          this.elements.chatContainer.scrollTop =
+            this.elements.chatContainer.scrollHeight;
+        }
+
+        showWelcomeMessage() {
+          this.addMessage(
+            "¡Bienvenido! ¿En qué puedo ayudarte?",
+            CONFIG.MESSAGE_TYPES.AGENT
+          );
+          this.elements.sessionIdDisplay.textContent = `ID de sesión: ${this.sessionId}`;
+        }
+
+        handleError(error) {
+          console.error("Error:", error);
+          this.addMessage(
+            "Ha ocurrido un error. Por favor, intenta de nuevo.",
+            CONFIG.MESSAGE_TYPES.ERROR
+          );
+        }
+
+        showConfirmationMessage(message, data) {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = "message confirmation-message";
+
+          let content = `<h3>Detecté que deseas realizar la siguiente acción:</h3>`;
+
+          // Crear sección de detalles con mejor estructura
+          content += `<div class="confirmation-details">`;
+
+          // Mostrar datos en orden específico para mejor comprensión
+          const fieldsToShow = [
+            "intention",
+            "entities",
+            "action",
+            "extracted_data",
+          ];
+          const fieldLabels = {
+            intention: "Intención",
+            entities: "Entidades",
+            action: "Acción",
+            extracted_data: "Datos extraídos",
+          };
+
+          fieldsToShow.forEach((field) => {
+            if (data[field]) {
+              content += `<div class="data-field">`;
+              content += `<span class="field-label">${fieldLabels[field]}:</span>`;
+
+              if (field === "extracted_data") {
+                content += `<span class="field-value">
+                                <pre class="json-data">${JSON.stringify(
+                                  data[field],
+                                  null,
+                                  2
+                                )}</pre>
+                            </span>`;
+              } else if (field === "entities" && Array.isArray(data[field])) {
+                content += `<span class="field-value">${data[field].join(
+                  ", "
+                )}</span>`;
+              } else {
+                content += `<span class="field-value">${data[field]}</span>`;
+              }
+
+              content += `</div>`;
+            }
+          });
+
+          content += `</div>`;
+          content += `<p>¿Deseas que proceda con esta acción? (Responde 'sí' o 'no')</p>`;
+
+          messageDiv.innerHTML = content;
+          this.elements.chatContainer.appendChild(messageDiv);
+          this.scrollToBottom();
+
+          // Marcar el estado de espera de confirmación
+          this.state.waitingForConfirmation = true;
+        }
+
+        addFormattedMessage(message, data, type) {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = `message ${type}-message`;
+
+          let content = `<div class="data-presentation">`;
+
+          if (typeof message === "string") {
+            content += `<h3>${message}</h3>`;
+          }
+
+          if (data) {
+            if (Array.isArray(data)) {
+              data.forEach((item) => {
+                content += this.formatDataObject(item);
+              });
+            } else if (typeof data === "object") {
+              content += this.formatDataObject(data);
+            }
+          }
+
+          content += "</div>";
+          messageDiv.innerHTML = content;
+          this.elements.chatContainer.appendChild(messageDiv);
+          this.scrollToBottom();
+        }
+
+        formatDataObject(obj) {
+          let content = '<div class="data-fields">';
+
+          for (const [key, value] of Object.entries(obj)) {
+            if (value !== null && value !== undefined) {
+              content += `<div class="data-field">
+                            <span class="field-label">${this.formatLabel(
+                              key
+                            )}:</span>
+                            <span class="field-value">${this.formatValue(
+                              value
+                            )}</span>
+                        </div>`;
+            }
+          }
+
+          content += "</div>";
+          return content;
+        }
+
+        formatLabel(key) {
+          return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ");
+        }
+
+        formatValue(value) {
+          if (typeof value === "object") {
+            return `<pre class="json-data">${JSON.stringify(
+              value,
+              null,
+              2
+            )}</pre>`;
+          }
+          return value.toString();
+        }
+      }
+
+      // Inicializar cuando el DOM esté listo
+      document.addEventListener("DOMContentLoaded", () => {
+        window.chatInterface = new ChatInterface();
+      });
+    </script>
+  </body>
+</html>

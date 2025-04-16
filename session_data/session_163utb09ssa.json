@@ -1,0 +1,11 @@
+{
+  "pending_action": {
+    "type": "consulta",
+    "entities": [
+      "cliente"
+    ],
+    "action": "listar"
+  },
+  "pending_data": {},
+  "current_purpose": "Realizar ActionType.LISTAR en cliente"
+}
