@@ -373,6 +373,53 @@
           opacity: 1;
         }
       }
+
+      /* Mejoras para formato de texto en mensajes */
+      .success-message strong, 
+      .agent-message strong {
+        font-weight: 700;
+        color: #333;
+      }
+      
+      .success-message em, 
+      .agent-message em {
+        font-style: italic;
+        color: #555;
+      }
+      
+      /* Mejorar presentación de emojis */
+      .success-message, 
+      .agent-message {
+        font-size: 16px;
+      }
+      
+      /* Estilo para títulos en mensajes formateados */
+      .success-message h3,
+      .agent-message h3 {
+        margin-top: 5px;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+        color: #333;
+        border-bottom: 1px solid #eaeaea;
+        padding-bottom: 8px;
+      }
+      
+      /* Mejora para estructura de listas en mensajes */
+      .data-presentation {
+        margin: 0;
+        padding: 0;
+      }
+      
+      /* Espacio después de los saltos de línea */
+      .data-presentation br {
+        display: block;
+        margin-bottom: 5px;
+      }
+      
+      /* Resaltar elementos de cliente/producto */
+      .data-presentation strong {
+        color: var(--primary-dark);
+      }
     </style>
   </head>
   <body>
@@ -557,33 +604,31 @@
 
         handleResponse(response) {
           if (response.status === "success") {
-            if (response.data && response.data.requires_confirmation) {
-              // Para mensajes que requieren confirmación
-              this.showConfirmationMessage(response.message, response.data);
+            this.addFormattedMessage(
+              response.message,
+              response.data,
+              CONFIG.MESSAGE_TYPES.SUCCESS
+            );
+          } else if (response.status === "confirmation_required") {
+            // Para mensajes que requieren confirmación
+            this.showConfirmationMessage(response.message, response.data);
 
-              // Mostrar los botones de confirmación después de un pequeño retraso
+            // Mostrar los botones de confirmación después de un pequeño retraso
+            setTimeout(() => {
+              this.elements.confirmationButtons.style.display = "flex";
+              this.scrollToBottom();
+
+              // Asegurar visibilidad añadiendo margen temporal al contenedor de chat
+              const chatContainer = this.elements.chatContainer;
+              const originalPadding =
+                getComputedStyle(chatContainer).paddingBottom;
+              chatContainer.style.paddingBottom = "60px";
+
+              // Revertir después de un breve tiempo
               setTimeout(() => {
-                this.elements.confirmationButtons.style.display = "flex";
-                this.scrollToBottom();
-
-                // Asegurar visibilidad añadiendo margen temporal al contenedor de chat
-                const chatContainer = this.elements.chatContainer;
-                const originalPadding =
-                  getComputedStyle(chatContainer).paddingBottom;
-                chatContainer.style.paddingBottom = "60px";
-
-                // Revertir después de un breve tiempo
-                setTimeout(() => {
-                  chatContainer.style.paddingBottom = originalPadding;
-                }, 300);
-              }, 200);
-            } else {
-              this.addFormattedMessage(
-                response.message,
-                response.data,
-                CONFIG.MESSAGE_TYPES.SUCCESS
-              );
-            }
+                chatContainer.style.paddingBottom = originalPadding;
+              }, 300);
+            }, 200);
           } else if (response.status === "error") {
             this.addMessage(response.message, CONFIG.MESSAGE_TYPES.ERROR);
           } else {
@@ -729,16 +774,35 @@
           let content = `<div class="data-presentation">`;
 
           if (typeof message === "string") {
-            content += `<h3>${message}</h3>`;
+            // Procesar markdown básico: **texto** para negritas y *texto* para cursiva
+            let formattedMessage = message
+              // Convertir saltos de línea en <br>
+              .replace(/\n/g, "<br>")
+              // Convertir **texto** en <strong>texto</strong>
+              .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+              // Convertir *texto* en <em>texto</em> (solo si no es parte de **)
+              .replace(/\*([^*]*)\*/g, "<em>$1</em>");
+            
+            content += formattedMessage;
           }
 
-          if (data) {
+          if (data && data.result) {
+            // Si hay datos de resultado específicos, omitirlos ya que están en el mensaje formateado
+            // El mensaje ya contiene la información formateada visualmente
+          } else if (data) {
             if (Array.isArray(data)) {
               data.forEach((item) => {
                 content += this.formatDataObject(item);
               });
             } else if (typeof data === "object") {
-              content += this.formatDataObject(data);
+              // Excluir 'result' si existe ya que lo mostramos formateado en el mensaje
+              const dataToShow = {...data};
+              if (dataToShow.result) delete dataToShow.result;
+              
+              // Solo mostrar los datos restantes si hay algo que mostrar
+              if (Object.keys(dataToShow).length > 0) {
+                content += this.formatDataObject(dataToShow);
+              }
             }
           }
 

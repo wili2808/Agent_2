@@ -88,6 +88,9 @@ class IntentionType(str, Enum):
             
         INVENTARIO: Control de inventario
             Ejemplo: "actualizar stock", "ajustar inventario"
+            
+        CONVERSACION: Interacción conversacional general
+            Ejemplo: "hola", "cómo estás", "qué puedes hacer"
     """
     CONSULTA = "consulta"         # Consultar información
     REGISTRO = "registro"         # Registrar nueva información
@@ -96,6 +99,7 @@ class IntentionType(str, Enum):
     VENTA = "venta"               # Operaciones de venta
     FACTURACION = "facturacion"   # Operaciones de facturación
     INVENTARIO = "inventario"     # Gestión de inventario
+    CONVERSACION = "conversacion" # Conversación general
 
 class EntityType(str, Enum):
     """
@@ -120,6 +124,9 @@ class EntityType(str, Enum):
             
         DETALLE_VENTA: Representa los items de una venta
             Campos principales: id, venta_id, producto_id, cantidad, precio
+        
+        ASISTENTE: Representa al asistente virtual
+            Se utiliza para conversaciones generales no relacionadas con CRUD
     
     Notas:
         - Cada entidad debe corresponder a un modelo en la base de datos
@@ -131,6 +138,7 @@ class EntityType(str, Enum):
     VENTA = "venta"                     # Entidad venta
     FACTURA = "factura"                 # Entidad factura
     DETALLE_VENTA = "detalle_venta"     # Entidad detalle de venta
+    ASISTENTE = "asistente"             # Entidad asistente para conversaciones
 
 class ActionType(str, Enum):
     """
@@ -145,6 +153,7 @@ class ActionType(str, Enum):
         PROCESAR_VENTA: Gestionar una nueva transacción de venta
         GENERAR_FACTURA: Crear documento de facturación
         ACTUALIZAR_STOCK: Modificar niveles de inventario
+        CONVERSAR: Mantener una conversación general no relacionada con CRUD
     """
     LISTAR = "listar"
     BUSCAR = "buscar"
@@ -154,6 +163,7 @@ class ActionType(str, Enum):
     PROCESAR_VENTA = "procesar_venta"
     GENERAR_FACTURA = "generar_factura"
     ACTUALIZAR_STOCK = "actualizar_stock"
+    CONVERSAR = "conversar"  # Acción para conversaciones generales
 
 class Intention(BaseModel):
     """
@@ -266,6 +276,16 @@ INTENTIONS = {
         required_fields={EntityType.VENTA: ["id"]},
         optional_fields={},
         response_template="Generando factura para la venta especificada."
+    ),
+    
+    # Intención para conversación general
+    "conversacion_general": Intention(
+        type=IntentionType.CONVERSACION,
+        entities=[EntityType.ASISTENTE],
+        action=ActionType.CONVERSAR,
+        required_fields={},
+        optional_fields={},
+        response_template="Conversación general con el asistente."
     )
 }
 
@@ -307,6 +327,24 @@ patterns = {
         "generar factura", "crear factura", "nueva factura", "emitir factura",
         "facturar venta", "factura para venta", "facturación", "generar la factura",
         "necesito una factura", "crear una factura", "emitir una factura"
+    ],
+    "conversacion_general": [
+        # Saludos
+        "hola", "buenos días", "buenas tardes", "buenas noches", "saludos", 
+        "qué tal", "cómo estás", "cómo va", "qué hay",
+        
+        # Ayuda y preguntas sobre funcionalidades
+        "ayuda", "ayúdame", "qué puedes hacer", "cómo funciona", "cuáles son tus funciones",
+        "qué sabes hacer", "cómo te uso", "instrucciones", "manual", "guía",
+        
+        # Identidad del asistente
+        "quién eres", "cómo te llamas", "tu nombre", "qué eres", "qué tipo de asistente",
+        
+        # Agradecimientos
+        "gracias", "muchas gracias", "te agradezco", "excelente", "genial",
+        
+        # Despedidas
+        "adiós", "hasta luego", "nos vemos", "chao", "bye", "hasta pronto"
     ]
 }
 
@@ -357,6 +395,20 @@ def match_intention(message: str) -> Optional[Intention]:
                 print(f"Coincidencia encontrada para '{intention_key}' con patrón '{pattern}'")
                 return INTENTIONS.get(intention_key)
     
+    # Comprobar si parece una pregunta (comienza con qué, cómo, dónde, etc.)
+    question_starters = ["que ", "qué ", "como ", "cómo ", "donde ", "dónde ", "cuando ", "cuándo ", 
+                         "por qué ", "porque ", "cual ", "cuál ", "quien ", "quién "]
+    if any(normalized_message.startswith(starter) for starter in question_starters):
+        print(f"Detectada pregunta conversacional: '{message}'")
+        return INTENTIONS.get("conversacion_general")
+    
+    # Comprobar si es un mensaje corto (menos de 4 palabras) y no contiene palabras clave de negocio
+    business_keywords = (ENTITY_KEYWORDS["cliente"] + ENTITY_KEYWORDS["producto"] + 
+                         ENTITY_KEYWORDS["venta"] + ENTITY_KEYWORDS["factura"])
+    if len(normalized_message.split()) < 4 and not any(keyword in normalized_message for keyword in business_keywords):
+        print(f"Mensaje corto sin palabras clave de negocio: '{message}'")
+        return INTENTIONS.get("conversacion_general")
+    
     # Si no hay coincidencia específica pero el mensaje menciona clientes
     if any(word in normalized_message for word in ["cliente", "clientes"]):
         return INTENTIONS.get("listar_clientes")
@@ -373,6 +425,6 @@ def match_intention(message: str) -> Optional[Intention]:
     if any(word in normalized_message for word in ["factura", "facturas", "facturación"]):
         return INTENTIONS.get("generar_factura")
         
-    # Por defecto, si no se encuentra una intención específica
-    print(f"No se encontró coincidencia para el mensaje: '{message}'")
-    return INTENTIONS.get("listar_clientes") 
+    # Por defecto, si no se encuentra una intención específica, considérala conversacional
+    print(f"No se encontró coincidencia específica para el mensaje: '{message}', tratando como conversación general")
+    return INTENTIONS.get("conversacion_general") 

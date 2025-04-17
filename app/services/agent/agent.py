@@ -96,7 +96,35 @@ class AgentService:
             )
             
             # Configurar el parser para salida en formato JSON
-            self.parser = JsonOutputParser()
+            class RobustJsonOutputParser(JsonOutputParser):
+                """Parser personalizado que extrae JSON válido incluso con texto adicional."""
+                def parse(self, text):
+                    try:
+                        # Primero intentar parsear directamente
+                        return super().parse(text)
+                    except Exception as e:
+                        # Si falla, buscar patrón JSON con regex
+                        logger.info(f"Parseando respuesta con método robusto: {text[:100]}...")
+                        try:
+                            # Buscar el primer JSON válido en el texto
+                            json_match = re.search(r'({[\s\S]*})', text)
+                            if json_match:
+                                json_str = json_match.group(1)
+                                return json.loads(json_str)
+                            else:
+                                # Si no encontramos JSON, buscar listas JSON
+                                json_list_match = re.search(r'(\[[\s\S]*\])', text)
+                                if json_list_match:
+                                    return json.loads(json_list_match.group(1))
+                                logger.error(f"No se encontró JSON en la respuesta")
+                                return {"intention": "otro", "entities": ["otro"], "action": "otro", "extracted_data": {}}
+                        except Exception as e2:
+                            logger.error(f"Error en parsing robusto: {str(e2)}")
+                            # Retornar un valor predeterminado si todo falla
+                            return {"intention": "otro", "entities": ["otro"], "action": "otro", "extracted_data": {}}
+            
+            # Usar nuestro parser personalizado
+            self.parser = RobustJsonOutputParser()
             
             # Definir la plantilla de prompt para análisis de intención
             self.intention_prompt = PromptTemplate(
@@ -150,6 +178,112 @@ class AgentService:
         """
         self.db = db
         self.crud = CRUDService(db)
+        
+    def format_response(self, result: dict, action_type=None, entities=None) -> str:
+        """
+        Formatea el resultado de una acción para presentarlo al usuario de manera amigable.
+        
+        Args:
+            result (dict): Resultado de la acción ejecutada
+            action_type (str, optional): Tipo de acción ejecutada
+            entities (list, optional): Lista de entidades involucradas
+            
+        Returns:
+            str: Mensaje formateado para el usuario
+        """
+        if not result:
+            return "No se encontraron resultados."
+            
+        # Para listar clientes
+        if "clientes" in result:
+            clientes = result["clientes"]
+            if not clientes:
+                return "No hay clientes registrados en el sistema."
+                
+            response = "📋 **LISTA DE CLIENTES**\n\n"
+            for i, cliente in enumerate(clientes, 1):
+                response += f"**Cliente #{i}**\n"
+                response += f"- ID: {cliente.get('id')}\n"
+                response += f"- Nombre: {cliente.get('nombre')}\n"
+                response += f"- Email: {cliente.get('email')}\n"
+                if cliente.get('telefono'):
+                    response += f"- Teléfono: {cliente.get('telefono')}\n"
+                if cliente.get('direccion'):
+                    response += f"- Dirección: {cliente.get('direccion')}\n"
+                response += "\n"
+            return response
+            
+        # Para listar productos
+        elif "productos" in result:
+            productos = result["productos"]
+            if not productos:
+                return "No hay productos registrados en el sistema."
+                
+            response = "📦 **LISTA DE PRODUCTOS**\n\n"
+            for i, producto in enumerate(productos, 1):
+                response += f"**Producto #{i}**\n"
+                response += f"- ID: {producto.get('id')}\n"
+                response += f"- Nombre: {producto.get('nombre')}\n"
+                response += f"- Precio: ${producto.get('precio')}\n"
+                response += f"- Stock: {producto.get('stock')} unidades\n"
+                response += "\n"
+            return response
+            
+        # Para listar ventas
+        elif "ventas" in result:
+            ventas = result["ventas"]
+            if not ventas:
+                return "No hay ventas registradas en el sistema."
+                
+            response = "💰 **LISTA DE VENTAS**\n\n"
+            for i, venta in enumerate(ventas, 1):
+                response += f"**Venta #{i}**\n"
+                response += f"- ID: {venta.get('id')}\n"
+                response += f"- Cliente ID: {venta.get('cliente_id')}\n"
+                response += f"- Fecha: {venta.get('fecha')}\n"
+                response += f"- Total: ${venta.get('total')}\n"
+                response += "\n"
+            return response
+            
+        # Para listar facturas
+        elif "facturas" in result:
+            facturas = result["facturas"]
+            if not facturas:
+                return "No hay facturas registradas en el sistema."
+                
+            response = "🧾 **LISTA DE FACTURAS**\n\n"
+            for i, factura in enumerate(facturas, 1):
+                response += f"**Factura #{i}**\n"
+                response += f"- ID: {factura.get('id')}\n"
+                response += f"- Venta ID: {factura.get('venta_id')}\n"
+                response += f"- Fecha: {factura.get('fecha')}\n"
+                response += f"- Total: ${factura.get('monto')}\n"
+                response += "\n"
+            return response
+            
+        # Para creación exitosa
+        elif "cliente" in result:
+            cliente = result["cliente"]
+            return f"✅ Cliente creado/actualizado exitosamente:\n" + \
+                   f"- ID: {cliente.get('id')}\n" + \
+                   f"- Nombre: {cliente.get('nombre')}\n" + \
+                   f"- Email: {cliente.get('email')}\n"
+                   
+        elif "producto" in result:
+            producto = result["producto"]
+            return f"✅ Producto creado/actualizado exitosamente:\n" + \
+                   f"- ID: {producto.get('id')}\n" + \
+                   f"- Nombre: {producto.get('nombre')}\n" + \
+                   f"- Precio: ${producto.get('precio')}\n" + \
+                   f"- Stock: {producto.get('stock')} unidades\n"
+                   
+        # Para operaciones de eliminación
+        elif "success" in result and "message" in result:
+            icon = "✅" if result["success"] else "❌"
+            return f"{icon} {result['message']}"
+            
+        # Si no coincide con ningún formato específico, devolver el resultado en JSON
+        return json.dumps(result, indent=2, ensure_ascii=False)
 
     async def process_message(self, message: str) -> dict:
         """
@@ -195,10 +329,13 @@ class AgentService:
                 
                 logger.info(f"Acción ejecutada con éxito: {result}")
                 
+                # Formatear la respuesta de manera amigable para el usuario
+                formatted_result = self.format_response(result, action_type, action_entities)
+                
                 # Respuesta de éxito
                 return {
                     "status": "success",
-                    "message": f"Tarea completada exitosamente:\n{json.dumps(result, indent=2)}\n\n¿Qué otra tarea desea realizar?",
+                    "message": f"{formatted_result}\n\n¿Qué otra tarea desea realizar?",
                     "data": {
                         "intention": action_type,
                         "entities": action_entities,
@@ -237,6 +374,11 @@ class AgentService:
                             "message": "No se pudo determinar la intención del mensaje. ¿Qué tarea desea realizar?",
                             "data": None
                         }
+                    
+                    # Verificar si es una intención conversacional
+                    if intention.type == IntentionType.CONVERSACION:
+                        logger.info("Detectada intención conversacional, derivando al manejador de conversación")
+                        return await self.handle_conversation(message)
                     
                     # Guardar la acción pendiente para confirmación
                     self.pending_action = intention
@@ -458,4 +600,97 @@ class AgentService:
             operation (str): Tipo de operación a realizar
             data (dict): Datos necesarios para la operación
         """
-        pass 
+        pass
+
+    async def handle_conversation(self, message: str) -> dict:
+        """
+        Procesa un mensaje conversacional y genera una respuesta contextual.
+        
+        Este método maneja preguntas generales, saludos, consultas de información
+        y otros tipos de interacciones conversacionales que no requieren acciones CRUD.
+        
+        Args:
+            message (str): Mensaje del usuario
+            
+        Returns:
+            dict: Respuesta conversacional formateada
+        """
+        logger.info(f"Manejando mensaje conversacional: {message}")
+        
+        # Detectar tipos comunes de mensajes conversacionales
+        message_lower = message.lower()
+        
+        # Saludos
+        greetings = ["hola", "buenos dias", "buenas tardes", "buenas noches", "saludos"]
+        if any(greeting in message_lower for greeting in greetings):
+            return {
+                "status": "success",
+                "message": "¡Hola! Soy el asistente virtual de la empresa. Puedo ayudarte con la gestión de clientes, productos, ventas y facturas. ¿En qué puedo ayudarte hoy?",
+                "data": {"conversation_type": "greeting"}
+            }
+        
+        # Despedidas
+        goodbyes = ["adios", "hasta luego", "nos vemos", "chao", "bye"]
+        if any(goodbye in message_lower for goodbye in goodbyes):
+            return {
+                "status": "success", 
+                "message": "¡Hasta luego! Si necesitas algo más, estaré aquí para ayudarte.",
+                "data": {"conversation_type": "goodbye"}
+            }
+        
+        # Agradecimientos
+        thanks = ["gracias", "muchas gracias", "te agradezco", "thanks"]
+        if any(thank in message_lower for thank in thanks):
+            return {
+                "status": "success",
+                "message": "¡De nada! Estoy aquí para ayudarte. ¿Hay algo más en lo que pueda asistirte?",
+                "data": {"conversation_type": "thanks"}
+            }
+        
+        # Preguntas sobre identidad
+        identity_questions = ["quien eres", "quién eres", "como te llamas", "cómo te llamas", "tu nombre", "qué eres"]
+        if any(question in message_lower for question in identity_questions):
+            return {
+                "status": "success",
+                "message": "Soy el asistente virtual de la empresa, diseñado para ayudarte con la gestión de clientes, productos, ventas y facturas. Puedo realizar operaciones como listar, buscar, crear y actualizar registros.",
+                "data": {"conversation_type": "identity"}
+            }
+        
+        # Preguntas sobre capacidades
+        capability_questions = ["qué puedes hacer", "que puedes hacer", "cómo funciona", "como funciona", "ayuda", "ayúdame", "help"]
+        if any(question in message_lower for question in capability_questions):
+            return {
+                "status": "success",
+                "message": "Puedo ayudarte con las siguientes tareas:\n\n" +
+                           "📋 **Clientes**: Listar, buscar, crear, actualizar y eliminar clientes\n" +
+                           "📦 **Productos**: Listar, buscar, crear, actualizar y eliminar productos\n" +
+                           "💰 **Ventas**: Crear y consultar ventas\n" +
+                           "🧾 **Facturas**: Generar y consultar facturas\n\n" +
+                           "Puedes pedirme, por ejemplo: \"Listar clientes\", \"Crear un nuevo cliente\" o \"Muestra los productos\".",
+                "data": {"conversation_type": "capabilities"}
+            }
+        
+        # Para cualquier otro mensaje conversacional
+        # Usar el modelo LLM para una respuesta más general
+        prompt = f"""Eres un asistente de empresa amable y profesional. El usuario te ha enviado este mensaje:
+        "{message}"
+        
+        Genera una respuesta breve y útil, recordando que tu función principal es ayudar con gestión de clientes, productos, ventas y facturas.
+        Mantén tu respuesta en menos de 3 frases. Si no estás seguro de qué responder, sugiere acciones relacionadas con la gestión empresarial.
+        """
+        
+        try:
+            # Utilizar el modelo LLM para generar una respuesta
+            response = await self.llm.ainvoke(prompt)
+            return {
+                "status": "success",
+                "message": response.strip(),
+                "data": {"conversation_type": "general"}
+            }
+        except Exception as e:
+            logger.error(f"Error al generar respuesta conversacional: {str(e)}")
+            return {
+                "status": "success",
+                "message": "Entiendo lo que quieres decir. ¿Te interesa conocer información sobre nuestros clientes o productos? Puedes pedirme que te muestre listas o te ayude a registrar nueva información.",
+                "data": {"conversation_type": "fallback"}
+            } 

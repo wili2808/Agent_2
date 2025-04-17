@@ -6,6 +6,10 @@
     ],
     "action": "listar"
   },
-  "pending_data": {},
+  "pending_data": {
+    "cliente": {
+      "id": "7"
+    }
+  },
   "current_purpose": "Realizar ActionType.LISTAR en cliente"
 }
