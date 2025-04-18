@@ -1,13 +1,30 @@
+# Web Framework
 fastapi==0.104.1
 uvicorn==0.24.0
+python-multipart==0.0.6
+Jinja2==3.1.6
+gunicorn==21.2.0
+
+# Database
 sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
+alembic==1.12.1
+
+# LLM Integration
+langchain==0.3.23
+langchain-community==0.3.21
+langchain-core==0.3.51
+langchain-ollama==0.3.1
+ollama==0.4.7
+
+# Utilities
 python-dotenv==1.0.0
-langchain==0.0.350
-llama-index==0.9.48
+pydantic==2.11.3
+regex==2024.11.6
+
+# Communication
 twilio==8.10.0
-pydantic==2.5.2
+
+# Authentication
 python-jose==3.3.0
-passlib==1.7.4
-python-multipart==0.0.6
-alembic==1.12.1 
+passlib==1.7.4 
