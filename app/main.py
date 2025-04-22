@@ -9,25 +9,31 @@ Funcionalidades principales:
 - Manejo de estados de sesión y respuestas del agente
 """
 
-# Importaciones necesarias para la aplicación FastAPI
-from fastapi import FastAPI, Request, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware  # Para manejar CORS
-from dotenv import load_dotenv  # Para cargar variables de entorno
-# from app.api.endpoints import test # Eliminaremos este endpoint duplicado más adelante
-from app.database.base import engine, SessionLocal, get_db # Importar get_db
-from app.database import models
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
-from typing import Optional, Dict, Any
-import json # Mantenemos json por si acaso, aunque SessionManager lo usa internamente
-import os
-# import pickle # Ya no se usa pickle
-import logging # Importar logging
-from sqlalchemy.orm import Session
-from app.services.agent.agent import AgentService
-from app.services.agent.intentions import Intention # Restaurar la importación de Intention
-from app.services.session.session_manager import SessionManager # Importar SessionManager
+# Importaciones del framework FastAPI y componentes relacionados
+from fastapi import FastAPI, Request, Depends, HTTPException  # Framework principal y componentes básicos
+from fastapi.middleware.cors import CORSMiddleware  # Middleware para manejar solicitudes de origen cruzado (CORS)
+from fastapi.templating import Jinja2Templates  # Motor de plantillas para renderizar HTML
+from fastapi.responses import HTMLResponse  # Clase para respuestas HTML
+
+# Importaciones para manejo de configuración y variables de entorno
+from dotenv import load_dotenv  # Carga variables de entorno desde archivo .env
+
+# Importaciones relacionadas con la base de datos
+from app.database.base import engine, SessionLocal, get_db  # Configuración y utilidades de base de datos
+from app.database import models  # Modelos de datos SQLAlchemy
+from sqlalchemy.orm import Session  # Clase para manejar sesiones de base de datos
+
+# Importaciones para validación y tipado de datos
+from pydantic import BaseModel  # Clase base para modelos de datos con validación
+from typing import Optional, Dict, Any  # Tipos para anotaciones de tipo
+
+# Importaciones para logging y registro de eventos
+import logging  # Módulo de logging estándar de Python
+
+# Importaciones de servicios propios de la aplicación
+from app.services.agent.agent import AgentService  # Servicio principal del agente IA
+from app.services.agent.intentions import Intention  # Clase para manejar intenciones del agente
+from app.services.session.session_manager import SessionManager  # Gestor de sesiones de usuario
 
 # Configurar logging básico
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -54,9 +60,6 @@ app.add_middleware(
     allow_methods=["*"],  # Permitir todos los métodos HTTP
     allow_headers=["*"],  # Permitir todos los headers
 )
-
-# Incluir routers en la aplicación - Se elimina test.router temporalmente
-# app.include_router(test.router)
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -87,7 +90,6 @@ async def startup_event():
         finally:
             temp_db.close()
     logger.info("Aplicación iniciada y lista.")
-
 
 class Message(BaseModel):
     """
@@ -214,4 +216,4 @@ if __name__ == "__main__":
     import uvicorn  # Servidor ASGI
     logger.info("Iniciando servidor Uvicorn directamente...")
     # Iniciar el servidor en todas las interfaces (0.0.0.0) en el puerto 8000
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) # Usar reload para desarrollo 
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) # Usar reload para desarrollo
